@@ -7,43 +7,55 @@ export interface Database {
         Row: Clinic
         Insert: ClinicInsert
         Update: Partial<ClinicInsert>
+        Relationships: []
       }
       services: {
         Row: Service
         Insert: ServiceInsert
         Update: Partial<ServiceInsert>
+        Relationships: []
       }
       professionals: {
         Row: Professional
         Insert: ProfessionalInsert
         Update: Partial<ProfessionalInsert>
+        Relationships: []
       }
       clients: {
         Row: Client
         Insert: ClientInsert
         Update: Partial<ClientInsert>
+        Relationships: []
       }
       appointments: {
         Row: Appointment
         Insert: AppointmentInsert
         Update: Partial<AppointmentInsert>
+        Relationships: []
       }
       messages: {
         Row: Message
         Insert: MessageInsert
         Update: Partial<MessageInsert>
+        Relationships: []
       }
       bot_sessions: {
         Row: BotSession
         Insert: BotSessionInsert
         Update: Partial<BotSessionInsert>
+        Relationships: []
       }
       faq_items: {
         Row: FaqItem
         Insert: FaqItemInsert
         Update: Partial<FaqItemInsert>
+        Relationships: []
       }
     }
+    Views: Record<string, never>
+    Functions: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }
 
