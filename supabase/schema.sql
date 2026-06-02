@@ -1,6 +1,6 @@
 -- ============================================================
 -- SecretarIA — Schema Supabase
--- Rodar no SQL Editor do Supabase na ordem abaixo
+-- Idempotente: pode rodar mais de uma vez sem erros
 -- ============================================================
 
 -- Extensions
@@ -9,7 +9,7 @@ create extension if not exists "uuid-ossp";
 -- ============================================================
 -- CLINICS
 -- ============================================================
-create table public.clinics (
+create table if not exists public.clinics (
   id                      uuid primary key default uuid_generate_v4(),
   user_id                 uuid not null references auth.users(id) on delete cascade,
   name                    text not null,
@@ -39,6 +39,7 @@ create table public.clinics (
 
 alter table public.clinics enable row level security;
 
+drop policy if exists "clinic owner full access" on public.clinics;
 create policy "clinic owner full access"
   on public.clinics for all
   using (auth.uid() = user_id)
@@ -47,7 +48,7 @@ create policy "clinic owner full access"
 -- ============================================================
 -- SERVICES
 -- ============================================================
-create table public.services (
+create table if not exists public.services (
   id               uuid primary key default uuid_generate_v4(),
   clinic_id        uuid not null references public.clinics(id) on delete cascade,
   name             text not null,
@@ -60,6 +61,7 @@ create table public.services (
 
 alter table public.services enable row level security;
 
+drop policy if exists "clinic owner manages services" on public.services;
 create policy "clinic owner manages services"
   on public.services for all
   using (
@@ -72,7 +74,7 @@ create policy "clinic owner manages services"
 -- ============================================================
 -- PROFESSIONALS
 -- ============================================================
-create table public.professionals (
+create table if not exists public.professionals (
   id          uuid primary key default uuid_generate_v4(),
   clinic_id   uuid not null references public.clinics(id) on delete cascade,
   name        text not null,
@@ -83,6 +85,7 @@ create table public.professionals (
 
 alter table public.professionals enable row level security;
 
+drop policy if exists "clinic owner manages professionals" on public.professionals;
 create policy "clinic owner manages professionals"
   on public.professionals for all
   using (
@@ -95,7 +98,7 @@ create policy "clinic owner manages professionals"
 -- ============================================================
 -- CLIENTS
 -- ============================================================
-create table public.clients (
+create table if not exists public.clients (
   id                    uuid primary key default uuid_generate_v4(),
   clinic_id             uuid not null references public.clinics(id) on delete cascade,
   name                  text,
@@ -109,6 +112,7 @@ create table public.clients (
 
 alter table public.clients enable row level security;
 
+drop policy if exists "clinic owner manages clients" on public.clients;
 create policy "clinic owner manages clients"
   on public.clients for all
   using (
@@ -121,7 +125,7 @@ create policy "clinic owner manages clients"
 -- ============================================================
 -- APPOINTMENTS
 -- ============================================================
-create table public.appointments (
+create table if not exists public.appointments (
   id                       uuid primary key default uuid_generate_v4(),
   clinic_id                uuid not null references public.clinics(id) on delete cascade,
   client_id                uuid not null references public.clients(id) on delete cascade,
@@ -137,11 +141,12 @@ create table public.appointments (
   updated_at               timestamptz not null default now()
 );
 
-create index appointments_clinic_scheduled_idx on public.appointments(clinic_id, scheduled_at);
-create index appointments_reminder_idx on public.appointments(scheduled_at, reminder_sent) where status = 'pending';
+create index if not exists appointments_clinic_scheduled_idx on public.appointments(clinic_id, scheduled_at);
+create index if not exists appointments_reminder_idx on public.appointments(scheduled_at, reminder_sent) where status = 'pending';
 
 alter table public.appointments enable row level security;
 
+drop policy if exists "clinic owner manages appointments" on public.appointments;
 create policy "clinic owner manages appointments"
   on public.appointments for all
   using (
@@ -154,7 +159,7 @@ create policy "clinic owner manages appointments"
 -- ============================================================
 -- MESSAGES
 -- ============================================================
-create table public.messages (
+create table if not exists public.messages (
   id                uuid primary key default uuid_generate_v4(),
   clinic_id         uuid not null references public.clinics(id) on delete cascade,
   client_id         uuid references public.clients(id) on delete set null,
@@ -165,10 +170,11 @@ create table public.messages (
   created_at        timestamptz not null default now()
 );
 
-create index messages_clinic_whatsapp_idx on public.messages(clinic_id, whatsapp, created_at desc);
+create index if not exists messages_clinic_whatsapp_idx on public.messages(clinic_id, whatsapp, created_at desc);
 
 alter table public.messages enable row level security;
 
+drop policy if exists "clinic owner reads messages" on public.messages;
 create policy "clinic owner reads messages"
   on public.messages for all
   using (
@@ -181,7 +187,7 @@ create policy "clinic owner reads messages"
 -- ============================================================
 -- BOT SESSIONS
 -- ============================================================
-create table public.bot_sessions (
+create table if not exists public.bot_sessions (
   id          uuid primary key default uuid_generate_v4(),
   clinic_id   uuid not null references public.clinics(id) on delete cascade,
   whatsapp    text not null,
@@ -195,9 +201,7 @@ create table public.bot_sessions (
 
 alter table public.bot_sessions enable row level security;
 
--- Bot sessions are written by the backend service role, not by the logged-in user.
--- The backend uses the service_role key so RLS doesn't block it.
--- The clinic owner can read sessions via the panel (select only).
+drop policy if exists "clinic owner reads bot sessions" on public.bot_sessions;
 create policy "clinic owner reads bot sessions"
   on public.bot_sessions for select
   using (
@@ -207,7 +211,7 @@ create policy "clinic owner reads bot sessions"
 -- ============================================================
 -- FAQ ITEMS
 -- ============================================================
-create table public.faq_items (
+create table if not exists public.faq_items (
   id          uuid primary key default uuid_generate_v4(),
   clinic_id   uuid not null references public.clinics(id) on delete cascade,
   question    text not null,
@@ -218,6 +222,7 @@ create table public.faq_items (
 
 alter table public.faq_items enable row level security;
 
+drop policy if exists "clinic owner manages faq" on public.faq_items;
 create policy "clinic owner manages faq"
   on public.faq_items for all
   using (
@@ -238,14 +243,17 @@ begin
 end;
 $$;
 
+drop trigger if exists clinics_updated_at on public.clinics;
 create trigger clinics_updated_at
   before update on public.clinics
   for each row execute function public.set_updated_at();
 
+drop trigger if exists appointments_updated_at on public.appointments;
 create trigger appointments_updated_at
   before update on public.appointments
   for each row execute function public.set_updated_at();
 
+drop trigger if exists bot_sessions_updated_at on public.bot_sessions;
 create trigger bot_sessions_updated_at
   before update on public.bot_sessions
   for each row execute function public.set_updated_at();
@@ -267,6 +275,7 @@ begin
 end;
 $$;
 
+drop trigger if exists appointments_completed_trigger on public.appointments;
 create trigger appointments_completed_trigger
   after insert or update on public.appointments
   for each row execute function public.increment_client_appointments();
