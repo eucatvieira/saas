@@ -1,13 +1,22 @@
 import { Router, type Request, type Response } from 'express'
 import express from 'express'
-import { stripe, PLANS } from '../lib/stripe'
+import { stripe, stripeEnabled, PLANS } from '../lib/stripe'
 import { supabase } from '../lib/supabase'
 
 const router = Router()
 const FRONTEND = process.env.FRONTEND_URL ?? 'http://localhost:5173'
 
+function requireStripe(res: Response): boolean {
+  if (!stripeEnabled) {
+    res.status(503).json({ error: 'Stripe not configured' })
+    return false
+  }
+  return true
+}
+
 // ─── Create checkout session ──────────────────────────────────────────────────
 router.post('/checkout', async (req: Request, res: Response) => {
+  if (!requireStripe(res)) return
   const { clinicId, plan } = req.body as { clinicId: string; plan: string }
 
   const planInfo = PLANS[plan]
@@ -52,6 +61,7 @@ router.post('/checkout', async (req: Request, res: Response) => {
 
 // ─── Cancel subscription ──────────────────────────────────────────────────────
 router.post('/cancel', async (req: Request, res: Response) => {
+  if (!requireStripe(res)) return
   const { clinicId } = req.body as { clinicId: string }
 
   const { data: clinic } = await supabase
