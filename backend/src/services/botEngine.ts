@@ -1,8 +1,8 @@
 import { supabase } from '../lib/supabase'
-import { sendText, sendList } from '../lib/zapi'
+import { sendText } from '../lib/zapi'
+import { createCalendarEvent } from '../lib/googleCalendar'
 import {
-  addDays, format, startOfDay, endOfDay, parseISO,
-  isWithinInterval, setHours, setMinutes,
+  addDays, format, parseISO, addMinutes,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -378,20 +378,40 @@ async function handleConfirming(
   }
 
   const scheduledAt = `${ctx.date}T${ctx.time}:00`
+  const endAt = addMinutes(parseISO(scheduledAt), ctx.serviceDuration ?? 60).toISOString()
 
-  const { error } = await supabase.from('appointments').insert({
-    clinic_id: clinic.id,
-    client_id: client.id,
-    service_id: ctx.serviceId!,
-    professional_id: ctx.professionalId!,
-    scheduled_at: scheduledAt,
-    status: 'pending',
-  })
+  const { data: newAppt, error } = await supabase
+    .from('appointments')
+    .insert({
+      clinic_id: clinic.id,
+      client_id: client.id,
+      service_id: ctx.serviceId!,
+      professional_id: ctx.professionalId!,
+      scheduled_at: scheduledAt,
+      status: 'pending',
+    })
+    .select('id')
+    .single()
 
-  if (error) {
+  if (error || !newAppt) {
     await reply(clinic, whatsapp, 'Erro ao criar agendamento. Tente novamente ou entre em contato conosco.')
     await setState(clinic.id, whatsapp, 'idle', {})
     return
+  }
+
+  // Create Google Calendar event (only if clinic has token)
+  const calEventId = await createCalendarEvent(clinic.id, {
+    summary: `${ctx.serviceName} — ${client.name ?? whatsapp}`,
+    description: `Profissional: ${ctx.professionalName}\nCliente: ${client.name ?? whatsapp}\nWhatsApp: ${whatsapp}`,
+    startAt: scheduledAt,
+    endAt,
+  }).catch(() => null)
+
+  if (calEventId) {
+    await supabase
+      .from('appointments')
+      .update({ google_calendar_event_id: calEventId })
+      .eq('id', newAppt.id)
   }
 
   const dateFormatted = format(parseISO(ctx.date!), "d 'de' MMMM 'de' yyyy", { locale: ptBR })

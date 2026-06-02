@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Building2, Clock, Scissors, Users, Smartphone } from 'lucide-react'
+import { Building2, Clock, Scissors, Users, Smartphone, CalendarDays } from 'lucide-react'
 import { useClinic } from '../hooks/useClinic'
 import { useServices } from '../hooks/useServices'
 import { useProfessionals } from '../hooks/useProfessionals'
@@ -8,6 +8,7 @@ import { HoursTab } from '../components/settings/HoursTab'
 import { ServicesTab } from '../components/settings/ServicesTab'
 import { ProfessionalsTab } from '../components/settings/ProfessionalsTab'
 import { WhatsAppTab } from '../components/settings/WhatsAppTab'
+import { CalendarTab } from '../components/settings/CalendarTab'
 
 const TABS = [
   { id: 'clinic', label: 'Clínica', icon: Building2 },
@@ -15,6 +16,7 @@ const TABS = [
   { id: 'services', label: 'Serviços', icon: Scissors },
   { id: 'professionals', label: 'Profissionais', icon: Users },
   { id: 'whatsapp', label: 'WhatsApp', icon: Smartphone },
+  { id: 'calendar', label: 'Calendário', icon: CalendarDays },
 ]
 
 export function SettingsPage() {
@@ -54,6 +56,7 @@ export function SettingsPage() {
         {tab === 'services' && <ServicesTab clinicId={clinic.id} services={services} onSaved={refetchServices} />}
         {tab === 'professionals' && <ProfessionalsTab clinicId={clinic.id} professionals={professionals} onSaved={refetchProfessionals} />}
         {tab === 'whatsapp' && <WhatsAppTab clinic={clinic} onSaved={refetchClinic} />}
+        {tab === 'calendar' && <CalendarTab clinic={clinic} onSaved={refetchClinic} />}
       </div>
     </div>
   )

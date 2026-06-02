@@ -8,6 +8,7 @@ import { AppointmentsPage } from './pages/AppointmentsPage'
 import { ClientsPage } from './pages/ClientsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { OnboardingPage } from './pages/OnboardingPage'
+import { BillingPage } from './pages/BillingPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -35,6 +36,7 @@ function AppRoutes() {
         <Route path="agendamentos" element={<AppointmentsPage />} />
         <Route path="clientes" element={<ClientsPage />} />
         <Route path="configuracoes" element={<SettingsPage />} />
+        <Route path="planos" element={<BillingPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, CalendarDays, Users, Settings, LogOut, Bot } from 'lucide-react'
+import { LayoutDashboard, CalendarDays, Users, Settings, LogOut, Bot, CreditCard } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { clsx } from 'clsx'
 
@@ -8,6 +8,7 @@ const nav = [
   { to: '/agendamentos', icon: CalendarDays, label: 'Agendamentos' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
   { to: '/configuracoes', icon: Settings, label: 'Configurações' },
+  { to: '/planos', icon: CreditCard, label: 'Planos' },
 ]
 
 export function Sidebar() {
