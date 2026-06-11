@@ -5,6 +5,7 @@ import { Users, Search, Send, AlertCircle } from 'lucide-react'
 import { useClinic } from '../hooks/useClinic'
 import { useClients, type Client } from '../hooks/useClients'
 import { supabase } from '../lib/supabase'
+import { Skeleton } from '../components/ui/Skeleton'
 
 function InactiveTag({ lastAt }: { lastAt: string | null }) {
   if (!lastAt) return <span className="text-xs text-gray-400">Nunca agendou</span>
@@ -124,7 +125,19 @@ export function ClientsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading && (
-                <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-gray-400">Carregando...</td></tr>
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}>
+                    <td className="px-5 py-3">
+                      <Skeleton className="h-4 w-28 mb-1.5" />
+                      <Skeleton className="h-3 w-16" />
+                    </td>
+                    <td className="px-5 py-3"><Skeleton className="h-4 w-24" /></td>
+                    <td className="px-5 py-3"><Skeleton className="h-4 w-6" /></td>
+                    <td className="px-5 py-3"><Skeleton className="h-5 w-20 rounded-full" /></td>
+                    <td className="px-5 py-3"><Skeleton className="h-4 w-24" /></td>
+                    <td className="px-5 py-3"></td>
+                  </tr>
+                ))
               )}
               {!loading && filtered.length === 0 && (
                 <tr>

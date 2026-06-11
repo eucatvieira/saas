@@ -5,6 +5,7 @@ import { CalendarDays, Users, TrendingDown, DollarSign, Clock, AlertCircle } fro
 import { useClinic } from '../hooks/useClinic'
 import { useAppointments } from '../hooks/useAppointments'
 import { Badge } from '../components/ui/Badge'
+import { Skeleton } from '../components/ui/Skeleton'
 
 function StatCard({ icon: Icon, label, value, sub, color }: {
   icon: React.ElementType
@@ -81,34 +82,49 @@ export function DashboardPage() {
 
       {/* Métricas */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          icon={CalendarDays}
-          label="Agendamentos hoje"
-          value={metrics.todayAppts.length}
-          sub={`${metrics.todayAppts.filter(a => a.status === 'confirmed').length} confirmados`}
-          color="bg-violet-100 text-violet-600"
-        />
-        <StatCard
-          icon={DollarSign}
-          label="Receita do mês"
-          value={`R$ ${metrics.monthRevenue.toFixed(2)}`}
-          sub="Apenas concluídos"
-          color="bg-green-100 text-green-600"
-        />
-        <StatCard
-          icon={Users}
-          label="Clientes ativos"
-          value={metrics.activeClients}
-          sub="Últimos 30 dias"
-          color="bg-blue-100 text-blue-600"
-        />
-        <StatCard
-          icon={TrendingDown}
-          label="Taxa de no-show"
-          value={`${metrics.noShowRate}%`}
-          sub="Últimos 30 dias"
-          color="bg-orange-100 text-orange-600"
-        />
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="w-9 h-9 rounded-lg" />
+              </div>
+              <Skeleton className="h-8 w-16 mb-1.5" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          ))
+        ) : (
+          <>
+            <StatCard
+              icon={CalendarDays}
+              label="Agendamentos hoje"
+              value={metrics.todayAppts.length}
+              sub={`${metrics.todayAppts.filter(a => a.status === 'confirmed').length} confirmados`}
+              color="bg-violet-100 text-violet-600"
+            />
+            <StatCard
+              icon={DollarSign}
+              label="Receita do mês"
+              value={`R$ ${metrics.monthRevenue.toFixed(2)}`}
+              sub="Apenas concluídos"
+              color="bg-green-100 text-green-600"
+            />
+            <StatCard
+              icon={Users}
+              label="Clientes ativos"
+              value={metrics.activeClients}
+              sub="Últimos 30 dias"
+              color="bg-blue-100 text-blue-600"
+            />
+            <StatCard
+              icon={TrendingDown}
+              label="Taxa de no-show"
+              value={`${metrics.noShowRate}%`}
+              sub="Últimos 30 dias"
+              color="bg-orange-100 text-orange-600"
+            />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -119,7 +135,20 @@ export function DashboardPage() {
             <span className="text-xs text-gray-400">{metrics.todayAppts.length} agendamentos</span>
           </div>
 
-          {loading && <p className="text-sm text-gray-400">Carregando...</p>}
+          {loading && (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                  <Skeleton className="w-12 h-9 flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                  <Skeleton className="w-16 h-5 rounded-full flex-shrink-0" />
+                </div>
+              ))}
+            </div>
+          )}
 
           {!loading && metrics.todayAppts.length === 0 && (
             <div className="flex flex-col items-center py-8 text-gray-400">
@@ -156,6 +185,24 @@ export function DashboardPage() {
             <h2 className="font-semibold text-gray-900">Próximos</h2>
             <Clock className="w-4 h-4 text-gray-400" />
           </div>
+
+          {loading && (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                  <div className="flex-shrink-0 w-16 space-y-1">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-4 w-3/4 mx-auto" />
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                  <Skeleton className="w-16 h-5 rounded-full flex-shrink-0" />
+                </div>
+              ))}
+            </div>
+          )}
 
           {!loading && upcoming.length === 0 && (
             <div className="flex flex-col items-center py-8 text-gray-400">

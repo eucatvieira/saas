@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, X } from 'lucide-react'
 import { useClinic } from '../hooks/useClinic'
 import { useAppointments, type Appointment } from '../hooks/useAppointments'
 import { Badge } from '../components/ui/Badge'
+import { Skeleton } from '../components/ui/Skeleton'
 import { supabase } from '../lib/supabase'
 
 const STATUS_FILTERS = [
@@ -218,7 +219,26 @@ export function AppointmentsPage() {
           <h2 className="font-medium text-gray-900">Lista completa</h2>
         </div>
 
-        {loading && <p className="p-5 text-sm text-gray-400">Carregando...</p>}
+        {loading && (
+          <div className="divide-y divide-gray-100">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-5 py-3">
+                <div className="w-20 flex-shrink-0 space-y-1.5">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+                <div className="flex-shrink-0 space-y-1.5 text-right">
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                  <Skeleton className="h-3 w-14 ml-auto" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {!loading && filtered.length === 0 && (
           <div className="flex flex-col items-center py-12 text-gray-400">
