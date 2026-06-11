@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react'
 import { Check, Zap, Star, Crown, AlertCircle } from 'lucide-react'
 import { useClinic } from '../hooks/useClinic'
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3001'
+const CAKTO_URLS: Record<string, string> = {
+  basic: import.meta.env.VITE_CAKTO_URL_BASIC ?? '',
+  pro:   import.meta.env.VITE_CAKTO_URL_PRO   ?? '',
+  elite: import.meta.env.VITE_CAKTO_URL_ELITE ?? '',
+}
 
 const PLANS = [
   {
@@ -13,7 +17,6 @@ const PLANS = [
     icon: Zap,
     color: 'text-blue-600',
     bg: 'bg-blue-50',
-    border: 'border-blue-200',
     features: [
       'Agendamento automático via WhatsApp',
       'Lembretes de confirmação 24h antes',
@@ -30,7 +33,6 @@ const PLANS = [
     icon: Star,
     color: 'text-violet-600',
     bg: 'bg-violet-50',
-    border: 'border-violet-300',
     highlight: true,
     features: [
       'Tudo do Basic',
@@ -48,7 +50,6 @@ const PLANS = [
     icon: Crown,
     color: 'text-amber-600',
     bg: 'bg-amber-50',
-    border: 'border-amber-200',
     features: [
       'Tudo do Pro',
       'Integração Google Calendar',
@@ -61,8 +62,6 @@ const PLANS = [
 
 export function BillingPage() {
   const { clinic, refetch } = useClinic()
-  const [loading, setLoading] = useState<string | null>(null)
-  const [cancelling, setCancelling] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   useEffect(() => {
@@ -72,46 +71,20 @@ export function BillingPage() {
       refetch()
       window.history.replaceState({}, '', '/planos')
     }
-    if (params.get('cancelled') === '1') {
-      setMessage({ type: 'error', text: 'Checkout cancelado.' })
-      window.history.replaceState({}, '', '/planos')
-    }
   }, [])
 
-  async function subscribe(planId: string) {
+  function subscribe(planId: string) {
     if (!clinic) return
-    setLoading(planId)
-    try {
-      const res = await fetch(`${BACKEND}/stripe/checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId: clinic.id, plan: planId }),
-      })
-      const { url } = await res.json()
-      if (url) window.location.href = url
-    } catch {
-      setMessage({ type: 'error', text: 'Erro ao iniciar checkout. Tente novamente.' })
-    } finally {
-      setLoading(null)
+    const baseUrl = CAKTO_URLS[planId]
+    if (!baseUrl) {
+      setMessage({ type: 'error', text: 'Link de checkout não configurado. Entre em contato com o suporte.' })
+      return
     }
-  }
-
-  async function cancelSubscription() {
-    if (!clinic || !confirm('Tem certeza que deseja cancelar sua assinatura?')) return
-    setCancelling(true)
-    try {
-      await fetch(`${BACKEND}/stripe/cancel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId: clinic.id }),
-      })
-      setMessage({ type: 'success', text: 'Assinatura cancelada. Você terá acesso até o fim do período pago.' })
-      refetch()
-    } catch {
-      setMessage({ type: 'error', text: 'Erro ao cancelar. Entre em contato com o suporte.' })
-    } finally {
-      setCancelling(false)
-    }
+    // Passa o clinicId como utm_content — o Cakto devolve esse valor no webhook
+    // para que o backend saiba qual clínica ativou o plano
+    const url = new URL(baseUrl)
+    url.searchParams.set('utm_content', clinic.id)
+    window.location.href = url.toString()
   }
 
   const currentPlan = clinic?.plan ?? 'trial'
@@ -124,15 +97,17 @@ export function BillingPage() {
         <p className="text-gray-500 text-sm mt-1">
           Plano atual:{' '}
           <span className="font-semibold capitalize text-violet-700">{currentPlan}</span>
-          {clinic?.plan_status === 'trial' && ' · Trial de 14 dias'}
-          {clinic?.plan_status === 'active' && ' · Ativo'}
+          {clinic?.plan_status === 'trial'    && ' · Trial de 14 dias'}
+          {clinic?.plan_status === 'active'   && ' · Ativo'}
           {clinic?.plan_status === 'inactive' && ' · Inativo'}
         </p>
       </div>
 
       {message && (
         <div className={`flex items-center gap-2 p-4 rounded-xl mb-6 ${
-          message.type === 'success' ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
+          message.type === 'success'
+            ? 'bg-green-50 border border-green-200 text-green-700'
+            : 'bg-red-50 border border-red-200 text-red-700'
         }`}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <p className="text-sm">{message.text}</p>
@@ -179,14 +154,13 @@ export function BillingPage() {
               ) : (
                 <button
                   onClick={() => subscribe(plan.id)}
-                  disabled={!!loading}
-                  className={`py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 ${
+                  className={`py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                     plan.highlight
                       ? 'bg-violet-600 hover:bg-violet-700 text-white'
                       : 'bg-gray-900 hover:bg-gray-700 text-white'
                   }`}
                 >
-                  {loading === plan.id ? 'Aguarde...' : `Assinar ${plan.name}`}
+                  Assinar {plan.name}
                 </button>
               )}
             </div>
@@ -195,18 +169,11 @@ export function BillingPage() {
       </div>
 
       {isActive && currentPlan !== 'trial' && (
-        <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-900">Gerenciar assinatura</p>
-            <p className="text-xs text-gray-500 mt-0.5">Cancele a qualquer momento. Sem multas.</p>
-          </div>
-          <button
-            onClick={cancelSubscription}
-            disabled={cancelling}
-            className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition-colors disabled:opacity-60"
-          >
-            {cancelling ? 'Cancelando...' : 'Cancelar assinatura'}
-          </button>
+        <div className="bg-gray-50 rounded-xl border border-gray-200 p-5">
+          <p className="text-sm font-medium text-gray-900">Gerenciar assinatura</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Para cancelar ou alterar seu plano, entre em contato via WhatsApp ou e-mail.
+          </p>
         </div>
       )}
     </div>
